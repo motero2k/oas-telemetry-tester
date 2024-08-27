@@ -4,8 +4,8 @@ import { runTests } from "../../utils/apiPecker";
 import { TelemetryEnablerConfig, TelemetryEnablerImpl, TelemetryIntervalConfig, TelemetryIntervalsImpl } from "../definitions";
 import path from "path";
 
-const DOCKERFILE_PATH = path.resolve(process.env.DOCKERFILE_PATH || "../../bluejay/bluejay-infrastructure/docker-bluejay/docker-compose.yaml");
-const ENV_PATH = path.resolve(process.env.ENV_PATH || "../../bluejay/bluejay-infrastructure/.env");
+const DOCKERFILE_PATH = path.resolve(process.env.DOCKERFILE_PATH || "../../bluejay-infrastructure/docker-bluejay/docker-compose.yaml");
+const ENV_PATH = path.resolve(process.env.ENV_FILE_PATH || "../../bluejay-infrastructure/.env");
 
 
 function myUrlBuilder(config: { problemSize: number; baseURL: any; agreementId: any; }) {
@@ -93,11 +93,25 @@ async function _startApp(telemetryInApp: boolean): Promise<void> {
 }
 
 async function _checkAppStarted(baseURL: string): Promise<boolean> {
-    const response = await axios.get(baseURL, { timeout: 8000 });
-    return response.status === 200;
+    //Polling the endpoint until it returns 200
+    const MAX_SECONDS = 100;
+    const INTERVAL = 1000;
+    let i = 0;
+    while (i < MAX_SECONDS) {
+        try {
+            await axios.get(baseURL);
+            console.log('App started successfully.');
+            return true;
+        } catch (error) {
+            console.log('Waiting for app to start...');
+        }
+        await new Promise(resolve => setTimeout(resolve, INTERVAL));
+        i++;
+    }
+
 }
 async function _stopDockerContainer(): Promise<void> {
-    const DOCKER_STOP_COMMAND = `docker kill bluejay-registry`;
+    const DOCKER_STOP_COMMAND = `docker stop bluejay-registry`;
     try {
         await executeCommand(DOCKER_STOP_COMMAND);
         console.log('Docker container "bluejay-registry" stopped successfully.');

@@ -48,7 +48,9 @@ export class TelemetryEnablerRunner implements Executable {
     run = async (config: TelemetryEnablerConfig) => {
         this.testTypeImpl.config = config;
         await this.testTypeImpl.startApp();
+        console.log("App started");
         await this.testTypeImpl.checkAppStarted();
+        console.log("App checked");
         await this.testTypeImpl.checkTelemetryStatus();
         await this.testTypeImpl.runTests();
         await this.testTypeImpl.stopApp();
