@@ -6,32 +6,39 @@ import { HeapStats, ApiPeckerResults } from '../types';
 
 
 export const runTests = async function (config: any): Promise<void> {
-    const { concurrentUsers, requests, delay, problemSize, urlBuilder } = config;
 
-    axios.get(config.baseURL + "/heapStats").then((response) => {
-        const heapStatsBefore: HeapStats = response.data;
-        return new Promise((resolve, reject) => {
+    const { concurrentUsers, requests, delay, url } = config;
+    try {
+        const heapStatsBefore: HeapStats = (await axios.get(config.baseURL + "/heapStats")).data;
+        //wait until time is any minute but 20s (avoid collecotor reset )
+        let secondUntilReady = Math.abs(60 + 10 - new Date().getSeconds() )%60;
+        console.log("Waiting " + secondUntilReady + " seconds to start test to avoid collector reset");
+        await new Promise((resolve) => setTimeout(resolve, secondUntilReady * 1000));
+        console.log("Starting " + config.testname + " test at " + new Date().toISOString()+ "requesting " + requests + " times");
+        return new Promise<void>((resolve, reject) => {
             run({
                 concurrentUsers,
                 iterations: requests,
                 delay: delay,
                 verbose: true,
-                urlBuilder,
-                resultsHandler: (results: any) => myResultsHandler(results, heapStatsBefore, config).then(resolve).catch(reject),
-            });
+                consoleLogging: true,
+                url,
+                resultsHandler: (results: any) => myResultsHandler(results, heapStatsBefore, config).then(() => resolve()).catch((error) => reject(error)),
+            })
         });
-    }).catch((error) => {
+    } catch (error) {
         console.log("Error getting heapStats before: " + error.message);
-    });
+    }
 }
 
 
-async function myResultsHandler(results: ApiPeckerResults, heapStatsBefore: HeapStats, config: { baseURL: string; testname: string; concurrentUsers: any; requests: any; delay: any; problemSize: any; }) : Promise<void> {
-    let heapStatsAfter;
+async function myResultsHandler(results: ApiPeckerResults, heapStatsBefore: HeapStats, config: any): Promise<void> {
+    let heapStatsAfter: HeapStats;
     axios.get(config.baseURL + "/heapStats").then((response) => {
         heapStatsAfter = response.data;
+        if (typeof config.delay !== "number")config.delay = "variable";
         const timestamp = new Date().toISOString();
-        const line = `"${config.testname}",${config.concurrentUsers},${config.requests},${config.delay},${config.problemSize},${results.summary.count},${results.summary.min},${results.summary.max},${results.summary.mean},${results.summary.std},${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.total_physical_size},${heapStatsBefore.total_available_size},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory},${heapStatsBefore.peak_malloced_memory},${heapStatsBefore.does_zap_garbage},${heapStatsBefore.number_of_native_contexts},${heapStatsBefore.number_of_detached_contexts},${heapStatsBefore.total_global_handles_size},${heapStatsBefore.used_global_handles_size},${heapStatsBefore.external_memory},${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.total_physical_size},${heapStatsAfter.total_available_size},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory},${heapStatsAfter.peak_malloced_memory},${heapStatsAfter.does_zap_garbage},${heapStatsAfter.number_of_native_contexts},${heapStatsAfter.number_of_detached_contexts},${heapStatsAfter.total_global_handles_size},${heapStatsAfter.used_global_handles_size},${heapStatsAfter.external_memory},${timestamp}\n`;
+        const line = `"${config.testname}",${config.baseURL},${config.concurrentUsers},${config.requests},${config.delay},${config.telemetryInApp},${config.orderOfMagnitude},${results.summary.count},${results.summary.min},${results.summary.max},${results.summary.mean},${results.summary.std},${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.total_physical_size},${heapStatsBefore.total_available_size},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory},${heapStatsBefore.peak_malloced_memory},${heapStatsBefore.does_zap_garbage},${heapStatsBefore.number_of_native_contexts},${heapStatsBefore.number_of_detached_contexts},${heapStatsBefore.total_global_handles_size},${heapStatsBefore.used_global_handles_size},${heapStatsBefore.external_memory},${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.total_physical_size},${heapStatsAfter.total_available_size},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory},${heapStatsAfter.peak_malloced_memory},${heapStatsAfter.does_zap_garbage},${heapStatsAfter.number_of_native_contexts},${heapStatsAfter.number_of_detached_contexts},${heapStatsAfter.total_global_handles_size},${heapStatsAfter.used_global_handles_size},${heapStatsAfter.external_memory},${timestamp}\n`;
 
         fs.writeFileSync("output.csv", line, { flag: 'a+' });
         console.log("Finished " + config.testname);

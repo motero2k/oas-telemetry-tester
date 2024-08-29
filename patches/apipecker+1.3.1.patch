@@ -1,5 +1,5 @@
 diff --git a/node_modules/apipecker/src/index.js b/node_modules/apipecker/src/index.js
-index 8147f32..255d25d 100644
+index e2c59f9..f8461fa 100755
 --- a/node_modules/apipecker/src/index.js
 +++ b/node_modules/apipecker/src/index.js
 @@ -29,10 +29,9 @@ function log(s){
@@ -14,11 +14,48 @@ index 8147f32..255d25d 100644
      var  url = config.url;
      const verbose = config.verbose;
      const method = config.method;
-@@ -244,9 +243,12 @@ function run(config){
+@@ -132,6 +131,7 @@ function run(config){
+             var options = {};
+ 
+             options.method = method;
++            options.timeout = 120000;
+  
+             var begin = getBegin();
+ 
+@@ -157,6 +157,11 @@ function run(config){
+                 stats["statusCode"] = resp.statusCode;
+                 stats["initialResponseTime"] = getDuration(begin);
+                 
++                req.on("timeout", () => {
++                    req.abort(); // Aborta la solicitud si excede el tiempo límite
++                    reject(`${id}: Request timed out`);
++                });
++
+                 // A chunk of data has been recieved.
+                 resp.on('data', (chunk) => {
+                     data += chunk;
+@@ -229,8 +234,7 @@ function run(config){
+                 var results = {};              
+                 if(iterationResults.length > 0){
+                     results = computeFullStats(iterationResults);
+-                    
+-                }else{
++                } else {
+                     results.summary = {};
+                     log("\nNo results to be shown.");
+                 }
+@@ -242,11 +246,20 @@ function run(config){
+                     resultsHandler(results);    
+     
              }
++        }).finally(() => {
++            if (remainingIterations <= 0) {
++                // End of iterations
++                log("All iterations completed or terminated.");
++            }
          });
      }
--    
+     
 +    let acumulatedDelay = 0;
      for (var i = 1; i <= iterations; i++) {
 -        setTimeout(requestLot, (delay * (i - 1)), "iteration" + i, harvester);
