@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Executable } from "../../types";
 
 
@@ -59,10 +60,14 @@ export class TelemetryEnablerRunner implements Executable {
         console.log("Telemetry checked");
         await this.testTypeImpl.startTelemetry();
         }
+        axios.get("http://localhost:3000/start").then(() => {console.log("DockerStats started")}).catch((err) => {console.log("Error starting DockerStats", err)});
+
         await this.testTypeImpl.runTests();
         console.log("Tests run");
         await this.testTypeImpl.stopApp();
         console.log("App stopped");
+
+        axios.get("http://localhost:3000/stop").then(() => {console.log("DockerStats stopped")}).catch((err) => {console.log("Error stopping DockerStats", err)});
         return;
         } catch (error) {
             console.log("Error", error);
@@ -86,6 +91,8 @@ export class TelemetryIntervalsRunner implements Executable {
         await this.testTypeImpl.checkTelemetryStatus();
         console.log("Telemetry checked");
 
+        axios.get("http://localhost:3000/start").then(() => {console.log("DockerStats started")}).catch((err) => {console.log("Error starting DockerStats", err)});
+
         await this.testTypeImpl.startTelemetry();
         console.log("Telemetry started");
         await this.testTypeImpl.runTests();
@@ -103,6 +110,8 @@ export class TelemetryIntervalsRunner implements Executable {
         
         await this.testTypeImpl.stopApp();
         console.log("App stopped");
+
+        axios.get("http://localhost:3000/stop").then(() => {console.log("DockerStats stopped")}).catch((err) => {console.log("Error stopping DockerStats", err)});
         return;
         } catch (error) {
             console.log("Error", error);

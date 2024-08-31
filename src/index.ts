@@ -4,6 +4,7 @@ import { TelemetryEnablerRunner, TelemetryIntervalsRunner } from "./testcases/de
 import { registryTelemetryEnablerImpl, registryTelemetryIntervalImpl } from "./testcases/implementations/registry";
 import { TestCaseConfig } from "./types";
 import { runTestCase } from "./utils";
+import axios from 'axios';
 
 
 const configTC001: TestCaseConfig = {
@@ -87,8 +88,9 @@ async function runTests() {
     // await runTestCase(configTC001, new TelemetryEnablerRunner(registryTelemetryEnablerImpl));
     // await runTestCase(configTC002, new TelemetryIntervalsRunner(registryTelemetryIntervalImpl));
     // await runTestCase(configTC003, new TelemetryEnablerRunner(registryTelemetryEnablerImpl));
-    await runTestCase(configDocker1, new TelemetryEnablerRunner(registryTelemetryEnablerImpl));
 
+
+    await runTestCase(configDocker1, new TelemetryEnablerRunner(registryTelemetryEnablerImpl));
     await runTestCase(configDocker2, new TelemetryIntervalsRunner(registryTelemetryIntervalImpl));
 }
 runTests();
