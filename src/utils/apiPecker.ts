@@ -10,12 +10,14 @@ export const runTests = async function (config: any): Promise<void> {
     const { concurrentUsers, requests, delay, url } = config;
     try {
         const heapStatsBefore: HeapStats = (await axios.get(config.baseURL + "/heapStats")).data;
-        //wait until time is any minute but 20s (avoid collecotor reset )
-        let secondUntilReady = Math.abs(60 + 10 - new Date().getSeconds() )%60;
+        //wait until time is any minute but 5s (avoid collecotor reset )
+        let secondUntilReady = Math.abs(60 + 5 - new Date().getSeconds() )%60;
         console.log("Waiting " + secondUntilReady + " seconds to start test to avoid collector reset");
         await new Promise((resolve) => setTimeout(resolve, secondUntilReady * 1000));
         console.log("Starting " + config.testname + " test at " + new Date().toISOString()+ "requesting " + requests + " times");
         return new Promise<void>((resolve, reject) => {
+            const startTime = new Date().toISOString();
+            config.startTime = startTime;
             run({
                 concurrentUsers,
                 iterations: requests,
@@ -37,8 +39,8 @@ async function myResultsHandler(results: ApiPeckerResults, heapStatsBefore: Heap
     axios.get(config.baseURL + "/heapStats").then((response) => {
         heapStatsAfter = response.data;
         if (typeof config.delay !== "number")config.delay = "variable";
-        const timestamp = new Date().toISOString();
-        const line = `"${config.testname}",${config.baseURL},${config.concurrentUsers},${config.requests},${config.delay},${config.telemetryInApp},${config.orderOfMagnitude},${results.summary.count},${results.summary.min},${results.summary.max},${results.summary.mean},${results.summary.std},${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.total_physical_size},${heapStatsBefore.total_available_size},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory},${heapStatsBefore.peak_malloced_memory},${heapStatsBefore.does_zap_garbage},${heapStatsBefore.number_of_native_contexts},${heapStatsBefore.number_of_detached_contexts},${heapStatsBefore.total_global_handles_size},${heapStatsBefore.used_global_handles_size},${heapStatsBefore.external_memory},${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.total_physical_size},${heapStatsAfter.total_available_size},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory},${heapStatsAfter.peak_malloced_memory},${heapStatsAfter.does_zap_garbage},${heapStatsAfter.number_of_native_contexts},${heapStatsAfter.number_of_detached_contexts},${heapStatsAfter.total_global_handles_size},${heapStatsAfter.used_global_handles_size},${heapStatsAfter.external_memory},${timestamp}\n`;
+        const timestampEND = new Date().toISOString();
+        const line = `"${config.testname}",${config.baseURL},${config.concurrentUsers},${config.requests},${config.delay},${config.telemetryInApp},${config.orderOfMagnitude},${results.summary.count},${results.summary.min},${results.summary.max},${results.summary.mean},${results.summary.std},${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.total_physical_size},${heapStatsBefore.total_available_size},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory},${heapStatsBefore.peak_malloced_memory},${heapStatsBefore.does_zap_garbage},${heapStatsBefore.number_of_native_contexts},${heapStatsBefore.number_of_detached_contexts},${heapStatsBefore.total_global_handles_size},${heapStatsBefore.used_global_handles_size},${heapStatsBefore.external_memory},${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.total_physical_size},${heapStatsAfter.total_available_size},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory},${heapStatsAfter.peak_malloced_memory},${heapStatsAfter.does_zap_garbage},${heapStatsAfter.number_of_native_contexts},${heapStatsAfter.number_of_detached_contexts},${heapStatsAfter.total_global_handles_size},${heapStatsAfter.used_global_handles_size},${heapStatsAfter.external_memory},${config.startTime},${timestampEND}\n`;
 
         fs.writeFileSync("output.csv", line, { flag: 'a+' });
         console.log("Finished " + config.testname);

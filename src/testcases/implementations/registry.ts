@@ -9,10 +9,11 @@ const ENV_PATH = path.resolve(process.env.ENV_FILE_PATH || "../../bluejay-infras
 
 
 function myUrlBuilder( problemSize: number, baseURL: any, agreementId: any) {
-    //problemSize is hours. Start date is a year ago, end date is start date + problemSize (in hours)
-    const startDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 365).toISOString();
-    const endDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 365 + 1000 * 60 * 60 * problemSize).toISOString();
-    return `${baseURL}/api/v6/states/${agreementId}/guarantees?from=${startDate}&to=${endDate}&newPeriodsFromGuarantees=false`;
+    //problemSize is hours.
+    //2024-01-01T00:00:00.000Z
+    const startDate = new Date(2024, 0, 1, 0, 0, 0, 0);
+    const endDate = new Date(startDate.getTime() + 1000 * 60 * 60 * problemSize);
+    return `${baseURL}/api/v6/states/${agreementId}/guarantees?from=${startDate.toISOString()}&to=${endDate.toISOString()}&newPeriodsFromGuarantees=false`;
 }
 /**
  * 
@@ -60,7 +61,7 @@ export const registryTelemetryEnablerImpl: TelemetryEnablerImpl = {
         return runTests(config);
     },
     stopApp(): Promise<void> {
-        return Promise.resolve(); //Docker start updates the app. Stopping is not necessary.
+        return _stopDockerContainer();
     },
     startTelemetry: function (): unknown {
         return axios.get(`${this.config.baseURL}/telemetry/start`);
@@ -82,9 +83,10 @@ export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl ={
     runTests(): Promise<void> {
         let requests = Math.floor(this.config.requests / 3);
         let url = myUrlBuilder(this.config.orderOfMagnitude,this.config.baseURL, this.config.agreementId);
-        const size2 = calculateNumberOfRequestsInAvailableSeconds(this.config.orderOfMagnitude);
-        let delay2 = (i: number, size = size2) => {
-            return (i % (size + 1) === 0) ? 20000 : getRegistryResponseTime(this.config.orderOfMagnitude);
+        const availableRequestCount = calculateNumberOfRequestsInAvailableSeconds(this.config.orderOfMagnitude);
+        let delay2 = (i: number, size = availableRequestCount) => {
+            let delayWhenCollectorResets = 60000 - availableRequestCount * getRegistryResponseTime(this.config.orderOfMagnitude); //0-10. 
+            return (i % (size + 1) === 0) ? delayWhenCollectorResets : getRegistryResponseTime(this.config.orderOfMagnitude);
         };
         let config = { ...this.config, requests, url, delay: delay2 , testname: "RegistryINTERVAL" };
         return  runTests(config);
@@ -96,7 +98,7 @@ export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl ={
         return  axios.get(`${this.config.baseURL}/telemetry/stop`);
     },
     stopApp(): Promise<void> {
-        return Promise.resolve(); //Docker start updates the app. Stopping is not necessary.
+        return _stopDockerContainer();
     }
 
 }
