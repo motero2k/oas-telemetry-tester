@@ -3,38 +3,29 @@ import { checkTelemetryEndpoint, executeCommand } from "../../utils";
 import { runTests } from "../../utils/apiPecker";
 import { TelemetryEnablerConfig, TelemetryEnablerImpl, TelemetryIntervalConfig, TelemetryIntervalsImpl } from "../definitions";
 import path from "path";
+import { logger } from "../../utils/logger";
 
 const DOCKERFILE_PATH = path.resolve(process.env.DOCKERFILE_PATH || "../../bluejay-infrastructure/docker-bluejay/docker-compose.yaml");
 const ENV_PATH = path.resolve(process.env.ENV_FILE_PATH || "../../bluejay-infrastructure/.env");
+const MAX_TIME_AVAILABLE = 45000
 
-
-function myUrlBuilder( problemSize: number, baseURL: any, agreementId: any) {
+function myUrlBuilder(problemSize: number, baseURL: any, agreementId: any) {
     //problemSize is hours.
-    //2024-01-01T00:00:00.000Z
-    const startDate = new Date(2024, 0, 1, 0, 0, 0, 0);
-    const endDate = new Date(startDate.getTime() + 1000 * 60 * 60 * problemSize);
-    return `${baseURL}/api/v6/states/${agreementId}/guarantees?from=${startDate.toISOString()}&to=${endDate.toISOString()}&newPeriodsFromGuarantees=false`;
+    const startDate = new Date(2024, 1, 1, 5, 0, 0, 0);
+    const endDate = new Date(startDate.getTime() + 1000 * 60 * 60 * problemSize - 1);
+    const url = `${baseURL}/api/v6/states/${agreementId}/guarantees?from=${startDate.toISOString()}&to=${endDate.toISOString()}&newPeriodsFromGuarantees=false`;
+    logger.log(url);
+    return url;
 }
+
 /**
  * 
- * @param i iteration number of apiPecker
- * @param size number of requests before a big delay
- * Regisrty calls the collector, which is restarted every minute for performance reasons.
- * We have to make some requests and then wait for the collector to restart.
+ * @param secureResponseTime More than the maximum response time of the request to registry
+ * @returns 
  */
-let delay = (i: number, size = 5) => {//i starts from 1
-    return (i % (size + 1) === 0) ? 20000 : 5000;
-}
-
-const getRegistryResponseTime = (orderOfMagnitude: number) => {
-    if (orderOfMagnitude === 1) return 10000;
-    if (orderOfMagnitude === 128) return 15000;
-    if (orderOfMagnitude === 238) return 20000;
-}
-
-const calculateNumberOfRequestsInAvailableSeconds = (orderOfMagnitude: number) => {
-    let responseTime = getRegistryResponseTime(orderOfMagnitude);
-    return Math.floor(45000 / responseTime); //45 seconds available 0-10 reseting, 5margin, 45 available
+const getNumberOfRequestsInAvailableSeconds = (secureResponseTime: number) => {
+    //45 seconds available 55-10 reseting
+    return Math.floor(MAX_TIME_AVAILABLE / secureResponseTime);
 }
 
 
@@ -52,12 +43,8 @@ export const registryTelemetryEnablerImpl: TelemetryEnablerImpl = {
     },
     runTests(): Promise<void> {
         let url = myUrlBuilder(this.config.orderOfMagnitude, this.config.baseURL, this.config.agreementId);
-        const availableRequestCount = calculateNumberOfRequestsInAvailableSeconds(this.config.orderOfMagnitude);
-        let delay2 = (i: number, size = availableRequestCount) => {
-            let delayWhenCollectorResets = 60000 - availableRequestCount * getRegistryResponseTime(this.config.orderOfMagnitude); //0-10. 
-            return (i % (size + 1) === 0) ? delayWhenCollectorResets : getRegistryResponseTime(this.config.orderOfMagnitude);
-        };
-        let config = { ...this.config, url, delay: delay2, testname: "RegistryTELEMETRY" };
+        const responseTime = this.config.orderOfMagnitude.secureResponseTime;
+        let config = { ...this.config, url, iterations: getNumberOfRequestsInAvailableSeconds(responseTime) , delay: responseTime, testname: "RegistryTELEMETRY" };
         return runTests(config);
     },
     stopApp(): Promise<void> {
@@ -68,34 +55,29 @@ export const registryTelemetryEnablerImpl: TelemetryEnablerImpl = {
     }
 }
 
-export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl ={
+export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl = {
 
     config: null,
     startApp(): Promise<void> {
-        return  _startApp(this.config.telemetryInApp);
+        return _startApp(this.config.telemetryInApp);
     },
     checkAppStarted(): Promise<boolean> {
-        return  _checkAppStarted(this.config.baseURL);
+        return _checkAppStarted(this.config.baseURL);
     },
     checkTelemetryStatus(): Promise<boolean> {
-        return   checkTelemetryEndpoint(this.config.baseURL + "/telemetry", 200);
+        return checkTelemetryEndpoint(this.config.baseURL + "/telemetry", 200);
     },
     runTests(): Promise<void> {
-        let requests = Math.floor(this.config.requests / 3);
-        let url = myUrlBuilder(this.config.orderOfMagnitude,this.config.baseURL, this.config.agreementId);
-        const availableRequestCount = calculateNumberOfRequestsInAvailableSeconds(this.config.orderOfMagnitude);
-        let delay2 = (i: number, size = availableRequestCount) => {
-            let delayWhenCollectorResets = 60000 - availableRequestCount * getRegistryResponseTime(this.config.orderOfMagnitude); //0-10. 
-            return (i % (size + 1) === 0) ? delayWhenCollectorResets : getRegistryResponseTime(this.config.orderOfMagnitude);
-        };
-        let config = { ...this.config, requests, url, delay: delay2 , testname: "RegistryINTERVAL" };
-        return  runTests(config);
+        let url = myUrlBuilder(this.config.orderOfMagnitude, this.config.baseURL, this.config.agreementId);
+        const responseTime = this.config.orderOfMagnitude.secureResponseTime;
+        let config = { ...this.config, requests: getNumberOfRequestsInAvailableSeconds(responseTime), url, delay: responseTime, testname: "RegistryINTERVAL" };
+        return runTests(config);
     },
     startTelemetry(): Promise<void> {
-        return  axios.get(`${this.config.baseURL}/telemetry/start`);
+        return axios.get(`${this.config.baseURL}/telemetry/start`);
     },
     stopTelemetry(): Promise<void> {
-        return  axios.get(`${this.config.baseURL}/telemetry/stop`);
+        return axios.get(`${this.config.baseURL}/telemetry/stop`);
     },
     stopApp(): Promise<void> {
         return _stopDockerContainer();
@@ -107,14 +89,14 @@ export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl ={
 
 
 async function _startApp(telemetryInApp: boolean): Promise<void> {
-     _stopDockerContainer();
+    _stopDockerContainer();
     let DOCKER_START_COMMAND = `export NEW_RELIC_LICENSE_KEY="" && export TELEMETRY_ENABLED=${telemetryInApp} && docker-compose -f ${DOCKERFILE_PATH} --env-file ${ENV_PATH} up -d bluejay-registry`;
-    if( process.platform === "win32"){
+    if (process.platform === "win32") {
         DOCKER_START_COMMAND = `set NEW_RELIC_LICENSE_KEY="" && set TELEMETRY_ENABLED=${telemetryInApp} && docker-compose -f ${DOCKERFILE_PATH} --env-file ${ENV_PATH} up -d bluejay-registry`;
     }
 
     await executeCommand(DOCKER_START_COMMAND);
-    console.log('Docker containers started successfully.');
+    logger.log('Docker containers started successfully.');
     return Promise.resolve();
 
 }
@@ -126,13 +108,13 @@ async function _checkAppStarted(baseURL: string): Promise<boolean> {
     let i = 0;
     while (i < MAX_SECONDS) {
         try {
-             await axios.get(baseURL);
-            console.log('App started successfully.');
+            await axios.get(baseURL);
+            logger.log('App started successfully.');
             return true;
         } catch (error) {
-            console.log('Waiting for app to start...');
+            logger.log('Waiting for app to start...');
         }
-         await new Promise(resolve => setTimeout(resolve, INTERVAL));
+        await new Promise(resolve => setTimeout(resolve, INTERVAL));
         i++;
     }
     return false;
@@ -141,10 +123,10 @@ async function _checkAppStarted(baseURL: string): Promise<boolean> {
 async function _stopDockerContainer(): Promise<void> {
     const DOCKER_STOP_COMMAND = `docker stop bluejay-registry`;
     try {
-            executeCommand(DOCKER_STOP_COMMAND);
-            console.log('Docker container "bluejay-registry" stopped successfully.');
+        executeCommand(DOCKER_STOP_COMMAND);
+        logger.log('Docker container "bluejay-registry" stopped successfully.');
     } catch (error) {
-        console.error('Failed to stop Docker container:', error.message);
+        logger.error('Failed to stop Docker container:', error.message);
     }
 }
 

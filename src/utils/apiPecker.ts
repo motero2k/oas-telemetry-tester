@@ -40,9 +40,16 @@ async function myResultsHandler(results: ApiPeckerResults, heapStatsBefore: Heap
         heapStatsAfter = response.data;
         if (typeof config.delay !== "number")config.delay = "variable";
         const timestampEND = new Date().toISOString();
-        const line = `"${config.testname}",${config.baseURL},${config.concurrentUsers},${config.requests},${config.delay},${config.telemetryInApp},${config.orderOfMagnitude},${results.summary.count},${results.summary.min},${results.summary.max},${results.summary.mean},${results.summary.std},${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.total_physical_size},${heapStatsBefore.total_available_size},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory},${heapStatsBefore.peak_malloced_memory},${heapStatsBefore.does_zap_garbage},${heapStatsBefore.number_of_native_contexts},${heapStatsBefore.number_of_detached_contexts},${heapStatsBefore.total_global_handles_size},${heapStatsBefore.used_global_handles_size},${heapStatsBefore.external_memory},${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.total_physical_size},${heapStatsAfter.total_available_size},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory},${heapStatsAfter.peak_malloced_memory},${heapStatsAfter.does_zap_garbage},${heapStatsAfter.number_of_native_contexts},${heapStatsAfter.number_of_detached_contexts},${heapStatsAfter.total_global_handles_size},${heapStatsAfter.used_global_handles_size},${heapStatsAfter.external_memory},${config.startTime},${timestampEND}\n`;
-
-        fs.writeFileSync("output.csv", line, { flag: 'a+' });
+        for(const stat of results.lotStats){
+            const timestamp = new Date(stat.timestamp).toISOString();
+            const responseTime = stat.result.summary.mean //its just one user, so mean is the same as the value
+            const line = 
+            `${timestamp},${config.testname}",${config.baseURL},${config.concurrentUsers},${config.requests},${config.delay},${config.telemetryInApp},${config.orderOfMagnitude.value},${responseTime}`
+            +`,${heapStatsBefore.total_heap_size},${heapStatsBefore.total_heap_size_executable},${heapStatsBefore.used_heap_size},${heapStatsBefore.heap_size_limit},${heapStatsBefore.malloced_memory}`
+            +`,${heapStatsAfter.total_heap_size},${heapStatsAfter.total_heap_size_executable},${heapStatsAfter.used_heap_size},${heapStatsAfter.heap_size_limit},${heapStatsAfter.malloced_memory}\n`;
+    
+            fs.writeFileSync("outputs/response-times-tc01-03.csv", line, { flag: 'a+' });
+        }
         console.log("Finished " + config.testname);
         Promise.resolve();
     }).catch((error) => {

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Executable } from "../../types";
+import { startDockerStats, stopDockerStats } from "../../utils/dockerStats";
 
 
 export interface TelemetryEnablerImpl {
@@ -60,14 +61,13 @@ export class TelemetryEnablerRunner implements Executable {
         console.log("Telemetry checked");
         await this.testTypeImpl.startTelemetry();
         }
-        axios.get("http://localhost:3000/start").then(() => {console.log("DockerStats started")}).catch((err) => {console.log("Error starting DockerStats", err)});
-
+        startDockerStats("TelemetryEnabler-"+config.telemetryInApp);
         await this.testTypeImpl.runTests();
         console.log("Tests run");
         await this.testTypeImpl.stopApp();
         console.log("App stopped");
 
-        axios.get("http://localhost:3000/stop").then(() => {console.log("DockerStats stopped")}).catch((err) => {console.log("Error stopping DockerStats", err)});
+        stopDockerStats();
         return;
         } catch (error) {
             console.log("Error", error);
@@ -91,22 +91,26 @@ export class TelemetryIntervalsRunner implements Executable {
         await this.testTypeImpl.checkTelemetryStatus();
         console.log("Telemetry checked");
 
-        axios.get("http://localhost:3000/start").then(() => {console.log("DockerStats started")}).catch((err) => {console.log("Error starting DockerStats", err)});
-
+        startDockerStats("TelemetryIntervals-"+"STARTED");
         await this.testTypeImpl.startTelemetry();
         console.log("Telemetry started");
-        await this.testTypeImpl.runTests();
         console.log("Tests run 1 of 3");
+        await this.testTypeImpl.runTests();
+        stopDockerStats();
+        
 
         await this.testTypeImpl.stopTelemetry();
+        startDockerStats("TelemetryIntervals-"+"STOPPED");
         console.log("Telemetry stopped");
-        await this.testTypeImpl.runTests();
         console.log("Tests run 2 of 3");
-
+        await this.testTypeImpl.runTests();
+        stopDockerStats();
+        startDockerStats("TelemetryIntervals-"+"RESTARTED");
         await this.testTypeImpl.startTelemetry();
         console.log("Telemetry started");
-        await this.testTypeImpl.runTests();
         console.log("Tests run 3 of 3");
+        await this.testTypeImpl.runTests();
+        stopDockerStats();
         
         await this.testTypeImpl.stopApp();
         console.log("App stopped");

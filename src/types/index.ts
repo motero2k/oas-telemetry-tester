@@ -32,6 +32,7 @@ export type HeapStats = {
 }
 
 export type ApiPeckerResults = {
+    lotStats: any[],
     summary: {
         count: number,
         min: number,
@@ -43,4 +44,11 @@ export type ApiPeckerResults = {
 
 export interface Executable {
     run(config:any): Promise<void>;
+}
+
+export interface orderOfMagnitude {
+    value: number;
+    name: string;
+    estimatedResponseTime: number;
+    secureResponseTime: number;
 }
