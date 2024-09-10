@@ -1,124 +1,92 @@
-import axios from "axios";
-import { Executable } from "../../types";
-import { startDockerStats, stopDockerStats } from "../../utils/dockerStats";
+import { Executable, TestConfig } from "../../types";
+import { logger } from "../../utils/logger";
 
+export abstract class TelemetryEnabler implements Executable {
+    
+    config: TestConfig;
 
-export interface TelemetryEnablerImpl {
-    startTelemetry(): unknown;
-    config: TelemetryEnablerConfig | null;
-    startApp(): Promise<void>;
-    checkAppStarted(): Promise<boolean>;
-    checkTelemetryStatus(): Promise<boolean>;
-    runTests(): Promise<void>;
-    stopApp(): Promise<void>;
-}
+    abstract startApp(): Promise<void>;
+    abstract checkAppStarted(): Promise<boolean>;
+    abstract checkTelemetryStatus(): Promise<boolean>;
+    abstract runTests(): Promise<void>;
+    abstract stopApp(): Promise<void>;
+    abstract startTelemetry(): Promise<void>;
 
-export interface TelemetryEnablerConfig {
-    baseURL: string;
-    telemetryInApp: boolean;
-    concurrentUsers: number;
-    requests: number;
-    requestDelay: number;
-    orderOfMagnitude: number;
-}
-
-export interface TelemetryIntervalConfig {
-    agreementId: any;
-    baseURL: string;
-    telemetryInApp: boolean;
-    concurrentUsers: number;
-    requests: number;
-    requestDelay: number;
-    orderOfMagnitude: number;
-}
-
-export interface TelemetryIntervalsImpl {
-    config: TelemetryIntervalConfig | null;
-    startApp(): Promise<void>;
-    checkAppStarted(): Promise<boolean>;
-    checkTelemetryStatus(): Promise<boolean>;
-    runTests(): Promise<void>;
-    stopApp(): Promise<void>;
-    startTelemetry(): Promise<void>;
-    stopTelemetry(): Promise<void>;
-}
-
-
-export class TelemetryEnablerRunner implements Executable {
-    testTypeImpl: TelemetryEnablerImpl
-    constructor(testType: TelemetryEnablerImpl) {
-        this.testTypeImpl = testType;
-    }
-    run = async (config: TelemetryEnablerConfig) => {
+    async run () {
         try {
-        this.testTypeImpl.config = config;
-        await this.testTypeImpl.startApp();
-        console.log("App started");
-        await this.testTypeImpl.checkAppStarted();
-        console.log("App checked");
-        if(config.telemetryInApp){
-        await this.testTypeImpl.checkTelemetryStatus();
-        console.log("Telemetry checked");
-        await this.testTypeImpl.startTelemetry();
-        }
-        startDockerStats("TelemetryEnabler-"+config.telemetryInApp);
-        await this.testTypeImpl.runTests();
-        console.log("Tests run");
-        await this.testTypeImpl.stopApp();
-        console.log("App stopped");
+            await this.startApp();
+            logger.log("App started");
+            await this.checkAppStarted();
+            logger.log("App checked");
+            if (this.config.telemetryInApp) {
+                await this.checkTelemetryStatus();
+                logger.log("Telemetry checked");
+                await this.startTelemetry();
+            }
+            
+            await this.runTests();
+            logger.log("Tests run");
+            await this.stopApp();
+            logger.log("App stopped");
 
-        stopDockerStats();
-        return;
+            
+            return;
         } catch (error) {
-            console.log("Error", error);
+            logger.log("Error", error);
         }
     }
 }
 
 
-export class TelemetryIntervalsRunner implements Executable {
-    testTypeImpl: TelemetryIntervalsImpl
-    constructor(testTypeImpl: TelemetryIntervalsImpl) {
-        this.testTypeImpl = testTypeImpl;
-    }
-    run = async (config: TelemetryIntervalConfig) => {
+
+export abstract class TelemetryIntervals implements Executable {
+    
+    config: TestConfig;
+
+    abstract startApp(): Promise<void>;
+    abstract checkAppStarted(): Promise<boolean>;
+    abstract checkTelemetryStatus(): Promise<boolean>;
+    abstract runTests(): Promise<void>;
+    abstract stopApp(): Promise<void>;
+    abstract startTelemetry(): Promise<void>;
+    abstract stopTelemetry(): Promise<void>;
+
+    async run(){
         try {
-        this.testTypeImpl.config = config;
-        await this.testTypeImpl.startApp();
-        console.log("App started");
-        await this.testTypeImpl.checkAppStarted();
-        console.log("App checked");
-        await this.testTypeImpl.checkTelemetryStatus();
-        console.log("Telemetry checked");
+        await this.startApp();
+        logger.log("App started");
+        await this.checkAppStarted();
+        logger.log("App checked");
+        await this.checkTelemetryStatus();
+        logger.log("Telemetry checked");
 
-        startDockerStats("TelemetryIntervals-"+"STARTED");
-        await this.testTypeImpl.startTelemetry();
-        console.log("Telemetry started");
-        console.log("Tests run 1 of 3");
-        await this.testTypeImpl.runTests();
-        stopDockerStats();
+        this.config.telemetryStatus = "1 STARTED";
+        await this.startTelemetry();
+        logger.log("Telemetry started");
+        logger.log("Tests run 1 of 3");
+        await this.runTests();
         
 
-        await this.testTypeImpl.stopTelemetry();
-        startDockerStats("TelemetryIntervals-"+"STOPPED");
-        console.log("Telemetry stopped");
-        console.log("Tests run 2 of 3");
-        await this.testTypeImpl.runTests();
-        stopDockerStats();
-        startDockerStats("TelemetryIntervals-"+"RESTARTED");
-        await this.testTypeImpl.startTelemetry();
-        console.log("Telemetry started");
-        console.log("Tests run 3 of 3");
-        await this.testTypeImpl.runTests();
-        stopDockerStats();
-        
-        await this.testTypeImpl.stopApp();
-        console.log("App stopped");
+        await this.stopTelemetry();
+        this.config.telemetryStatus = "2 STOPPED";
+        logger.log("Telemetry stopped");
+        logger.log("Tests run 2 of 3");
+        await this.runTests();
 
-        axios.get("http://localhost:3000/stop").then(() => {console.log("DockerStats stopped")}).catch((err) => {console.log("Error stopping DockerStats", err)});
+        this.config.telemetryStatus = "3 RESTARTED";
+        await this.startTelemetry();
+        logger.log("Telemetry started");
+        logger.log("Tests run 3 of 3");
+        await this.runTests();
+        
+        this.config.telemetryStatus = "UNKNOWN";
+        
+        await this.stopApp();
+        logger.log("App stopped");
+
         return;
         } catch (error) {
-            console.log("Error", error);
+            logger.log("Error", error);
         }
     }
 }

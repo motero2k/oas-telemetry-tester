@@ -1,7 +1,20 @@
-export type TestConfig = {
-    fixed: any;
-    combinable: CombinableParameters;
-    iterations: number;
+export interface TestConfig {
+    printableProperties: string[];
+    repeatTestCount: number;
+    currentIteration: number;
+    minutesPerTest: number; //Used for long duration tests (does not stop the app)
+    executableTest: any;
+    telemetryStatus: string;
+    testname: string;
+    baseURL: string;
+    telemetryInApp: boolean;
+    concurrentUsers: number;
+    orderOfMagnitude: orderOfMagnitude;
+    agreementId: string;
+}
+export interface Executable {
+    config: TestConfig;
+    run(): Promise<void>;
 }
 
 export type CombinableParameters = {
@@ -42,9 +55,7 @@ export type ApiPeckerResults = {
     }
 }
 
-export interface Executable {
-    run(config:any): Promise<void>;
-}
+
 
 export interface orderOfMagnitude {
     value: number;
@@ -52,3 +63,109 @@ export interface orderOfMagnitude {
     estimatedResponseTime: number;
     secureResponseTime: number;
 }
+
+export interface HeapAndResponseTimesConfig {
+    requests: number;
+    delay: number;
+    url: string;
+}
+
+
+export const dockerStats = {
+    "read": "2024-09-09T18:12:38.089898747Z",
+    "preread": "0001-01-01T00:00:00Z",
+    "pids_stats": {
+      "current": 18
+    },
+    "num_procs": 0,
+    "storage_stats": {},
+    "cpu_stats": {
+      "cpu_usage": {
+        "total_usage": 1015983707,
+        "percpu_usage": [
+          229651667,
+          70033962,
+          471032027,
+          88072882,
+          68268051,
+          63567518,
+          11336933,
+          14020667
+        ],
+        "usage_in_kernelmode": 110000000,
+        "usage_in_usermode": 910000000
+      },
+      "system_cpu_usage": 165866492020000000,
+      "online_cpus": 8,
+      "throttling_data": {
+        "periods": 0,
+        "throttled_periods": 0,
+        "throttled_time": 0
+      }
+    },
+    "precpu_stats": {
+      "cpu_usage": {
+        "total_usage": 0,
+        "usage_in_kernelmode": 0,
+        "usage_in_usermode": 0
+      },
+      "throttling_data": {
+        "periods": 0,
+        "throttled_periods": 0,
+        "throttled_time": 0
+      }
+    },
+    "memory_stats": {
+      "usage": 39550976,
+      "max_usage": 55717888,
+      "stats": {
+        "active_anon": 34467840,
+        "active_file": 0,
+        "cache": 0,
+        "dirty": 0,
+        "hierarchical_memory_limit": 9223372036854772000,
+        "hierarchical_memsw_limit": 0,
+        "inactive_anon": 0,
+        "inactive_file": 0,
+        "mapped_file": 0,
+        "pgfault": 36861,
+        "pgmajfault": 0,
+        "pgpgin": 34386,
+        "pgpgout": 25992,
+        "rss": 34377728,
+        "rss_huge": 0,
+        "total_active_anon": 34467840,
+        "total_active_file": 0,
+        "total_cache": 0,
+        "total_dirty": 0,
+        "total_inactive_anon": 0,
+        "total_inactive_file": 0,
+        "total_mapped_file": 0,
+        "total_pgfault": 36861,
+        "total_pgmajfault": 0,
+        "total_pgpgin": 34386,
+        "total_pgpgout": 25992,
+        "total_rss": 34377728,
+        "total_rss_huge": 0,
+        "total_unevictable": 0,
+        "total_writeback": 0,
+        "unevictable": 0,
+        "writeback": 0
+      },
+      "limit": 33554694144
+    },
+    "name": "/ks-api",
+    "id": "9deee180d1ae426ae999beef61c1aa7f9d5abeaf78e4f40809ac7db55e6465db",
+    "networks": {
+      "eth0": {
+        "rx_bytes": 1156,
+        "rx_packets": 14,
+        "rx_errors": 0,
+        "rx_dropped": 0,
+        "tx_bytes": 0,
+        "tx_packets": 0,
+        "tx_errors": 0,
+        "tx_dropped": 0
+      }
+    }
+  }

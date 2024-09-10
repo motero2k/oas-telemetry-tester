@@ -1,0 +1,85 @@
+{
+    "read": "2024-09-09T18:12:38.089898747Z",
+    "preread": "0001-01-01T00:00:00Z",
+    "pids_stats": {
+      "current": 18
+    },
+    "num_procs": 0,
+    "storage_stats": {},
+    "cpu_stats": {
+      "cpu_usage": {
+        "total_usage": 1015983707,
+        "percpu_usage": [
+          229651667,
+          70033962,
+          471032027,
+          88072882,
+          68268051,
+          63567518,
+          11336933,
+          14020667
+        ],
+        "usage_in_kernelmode": 110000000,
+        "usage_in_usermode": 910000000
+      },
+      "system_cpu_usage": 165866492020000000,
+      "online_cpus": 8,
+      "throttling_data": {
+        "periods": 0,
+        "throttled_periods": 0,
+        "throttled_time": 0
+      }
+    },
+    "precpu_stats": {
+      "cpu_usage": {
+        "total_usage": 0,
+        "usage_in_kernelmode": 0,
+        "usage_in_usermode": 0
+      },
+      "throttling_data": {
+        "periods": 0,
+        "throttled_periods": 0,
+        "throttled_time": 0
+      }
+    },
+    "memory_stats": {
+      "usage": 39550976,
+      "max_usage": 55717888,
+      "stats": {
+        "active_anon": 34467840,
+        "active_file": 0,
+        "cache": 0,
+        "dirty": 0,
+        "hierarchical_memory_limit": 9223372036854772000,
+        "hierarchical_memsw_limit": 0,
+        "inactive_anon": 0,
+        "inactive_file": 0,
+        "mapped_file": 0,
+        "pgfault": 36861,
+        "pgmajfault": 0,
+        "pgpgin": 34386,
+        "pgpgout": 25992,
+        "rss": 34377728,
+        "rss_huge": 0,
+        "total_active_anon": 34467840,
+        "total_active_file": 0,
+        "total_cache": 0,
+        "total_dirty": 0,
+        "total_inactive_anon": 0,
+        "total_inactive_file": 0,
+        "total_mapped_file": 0,
+        "total_pgfault": 36861,
+        "total_pgmajfault": 0,
+        "total_pgpgin": 34386,
+        "total_pgpgout": 25992,
+        "total_rss": 34377728,
+        "total_rss_huge": 0,
+        "total_unevictable": 0,
+        "total_writeback": 0,
+        "unevictable": 0,
+        "writeback": 0
+      },
+      "limit": 33554694144
+    },
+    "name": "/ks-api"
+  }

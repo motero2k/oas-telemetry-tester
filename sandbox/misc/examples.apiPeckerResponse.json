@@ -1,0 +1,158 @@
+{
+    "lotStats": [
+      {
+        "id": "iteration-1",
+        "result": {
+          "stats": [
+            {
+              "id": "user1",
+              "initialResponseTime": 193.8,
+              "completeResponseTime": 196.598,
+              "statusCode": 301,
+              "startTimeISO": "2024-09-05T21:19:26.381Z"
+            }
+          ],
+          "summary": {
+            "count": 1,
+            "min": 196.598,
+            "max": 196.598,
+            "mean": 196.598,
+            "std": 0,
+            "startTimeISO": "2024-09-05T21:19:26.381Z"
+          }
+        }
+      },
+      {
+        "id": "iteration-2",
+        "result": {
+          "stats": [
+            {
+              "id": "user1",
+              "initialResponseTime": 131.26,
+              "completeResponseTime": 131.901,
+              "statusCode": 301,
+              "startTimeISO": "2024-09-05T21:19:26.881Z"
+            }
+          ],
+          "summary": {
+            "count": 1,
+            "min": 131.901,
+            "max": 131.901,
+            "mean": 131.901,
+            "std": 0,
+            "startTimeISO": "2024-09-05T21:19:26.881Z"
+          }
+        }
+      },
+      {
+        "id": "iteration-3",
+        "result": {
+          "stats": [
+            {
+              "id": "user1",
+              "initialResponseTime": 113.892,
+              "completeResponseTime": 115.433,
+              "statusCode": 301,
+              "startTimeISO": "2024-09-05T21:19:27.378Z"
+            }
+          ],
+          "summary": {
+            "count": 1,
+            "min": 115.433,
+            "max": 115.433,
+            "mean": 115.433,
+            "std": 0,
+            "startTimeISO": "2024-09-05T21:19:27.378Z"
+          }
+        }
+      },
+      {
+        "id": "iteration-4",
+        "result": {
+          "stats": [
+            {
+              "id": "user1",
+              "initialResponseTime": 136.835,
+              "completeResponseTime": 137.815,
+              "statusCode": 301,
+              "startTimeISO": "2024-09-05T21:19:27.885Z"
+            }
+          ],
+          "summary": {
+            "count": 1,
+            "min": 137.815,
+            "max": 137.815,
+            "mean": 137.815,
+            "std": 0,
+            "startTimeISO": "2024-09-05T21:19:27.885Z"
+          }
+        }
+      },
+      {
+        "id": "iteration-5",
+        "result": {
+          "stats": [
+            {
+              "id": "user1",
+              "initialResponseTime": 106.796,
+              "completeResponseTime": 107.778,
+              "statusCode": 301,
+              "startTimeISO": "2024-09-05T21:19:28.385Z"
+            }
+          ],
+          "summary": {
+            "count": 1,
+            "min": 107.778,
+            "max": 107.778,
+            "mean": 107.778,
+            "std": 0,
+            "startTimeISO": "2024-09-05T21:19:28.385Z"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "count": 5,
+      "min": 107.778,
+      "max": 196.598,
+      "mean": 137.905,
+      "std": 34.977,
+      "startTimeISO": "2024-09-05T21:19:26.381Z"
+    },
+    "logs": [
+      "2024-09-05T21:19:26.377Z: Stress configuration:",
+      "2024-09-05T21:19:26.377Z:   - Concurrent users: 1",
+      "2024-09-05T21:19:26.377Z:   - Iterations: 5",
+      "2024-09-05T21:19:26.377Z:   - Delay: 500",
+      "2024-09-05T21:19:26.377Z:   - URL: <https://google.com>",
+      "2024-09-05T21:19:26.377Z:   - Log mode: VERBOSE",
+      "2024-09-05T21:19:26.377Z: Starting execution...",
+      "2024-09-05T21:19:26.381Z:  - iteration-1 started.",
+      "2024-09-05T21:19:26.381Z:   - user1: GET Request to <https://google.com>...",
+      "2024-09-05T21:19:26.575Z:     -> user1: Status Code 301",
+      "2024-09-05T21:19:26.577Z:     -> user1: Response recieved in 196.598ms",
+      "2024-09-05T21:19:26.580Z:   -> iteration-1 completed (1/5 of 5)",
+      "2024-09-05T21:19:26.881Z:  - iteration-2 started.",
+      "2024-09-05T21:19:26.881Z:   - user1: GET Request to <https://google.com>...",
+      "2024-09-05T21:19:27.013Z:     -> user1: Status Code 301",
+      "2024-09-05T21:19:27.013Z:     -> user1: Response recieved in 131.901ms",
+      "2024-09-05T21:19:27.014Z:   -> iteration-2 completed (2/5 of 5)",
+      "2024-09-05T21:19:27.378Z:  - iteration-3 started.",
+      "2024-09-05T21:19:27.378Z:   - user1: GET Request to <https://google.com>...",
+      "2024-09-05T21:19:27.492Z:     -> user1: Status Code 301",
+      "2024-09-05T21:19:27.494Z:     -> user1: Response recieved in 115.433ms",
+      "2024-09-05T21:19:27.495Z:   -> iteration-3 completed (3/5 of 5)",
+      "2024-09-05T21:19:27.885Z:  - iteration-4 started.",
+      "2024-09-05T21:19:27.885Z:   - user1: GET Request to <https://google.com>...",
+      "2024-09-05T21:19:28.022Z:     -> user1: Status Code 301",
+      "2024-09-05T21:19:28.023Z:     -> user1: Response recieved in 137.815ms",
+      "2024-09-05T21:19:28.023Z:   -> iteration-4 completed (4/5 of 5)",
+      "2024-09-05T21:19:28.385Z:  - iteration-5 started.",
+      "2024-09-05T21:19:28.385Z:   - user1: GET Request to <https://google.com>...",
+      "2024-09-05T21:19:28.491Z:     -> user1: Status Code 301",
+      "2024-09-05T21:19:28.493Z:     -> user1: Response recieved in 107.778ms",
+      "2024-09-05T21:19:28.493Z:   -> iteration-5 completed (5/5 of 5)",
+      "2024-09-05T21:19:28.493Z: \nResults:",
+      "2024-09-05T21:19:28.495Z: {\n  \"count\": 5,\n  \"min\": 107.778,\n  \"max\": 196.598,\n  \"mean\": 137.905,\n  \"std\": 34.977,\n  \"startTimeISO\": \"2024-09-05T21:19:26.381Z\"\n}"
+    ]
+  }

@@ -1,13 +1,26 @@
 import axios from "axios";
 import { checkTelemetryEndpoint, executeCommand } from "../../utils";
-import { runTests } from "../../utils/apiPecker";
-import { TelemetryEnablerConfig, TelemetryEnablerImpl, TelemetryIntervalConfig, TelemetryIntervalsImpl } from "../definitions";
+import { getHeapStatsAndResopnseTimes } from "../../utils/apiPecker";
+import { TelemetryEnabler, TelemetryIntervals } from "../definitions";
 import path from "path";
 import { logger } from "../../utils/logger";
+import { startDockerStats, stopDockerStats } from "../../utils/dockerStats";
+import { HeapAndResponseTimesConfig, TestConfig } from "../../types";
 
 const DOCKERFILE_PATH = path.resolve(process.env.DOCKERFILE_PATH || "../../bluejay-infrastructure/docker-bluejay/docker-compose.yaml");
 const ENV_PATH = path.resolve(process.env.ENV_FILE_PATH || "../../bluejay-infrastructure/.env");
 const MAX_TIME_AVAILABLE = 45000
+
+function getSecondsUntilNextMinute(secondOffset = 5, now = new Date().getSeconds()) {
+    let remainingSeconds = Math.abs(60 - now + secondOffset) % 60;
+    return remainingSeconds;
+}
+
+async function awaitCollectorReset() {
+    let secondUntilReady = getSecondsUntilNextMinute();
+    logger.log("Waiting " + secondUntilReady + " seconds to start test to avoid collector reset");
+    await new Promise((resolve) => setTimeout(resolve, secondUntilReady * 1000));
+}
 
 function myUrlBuilder(problemSize: number, baseURL: any, agreementId: any) {
     //problemSize is hours.
@@ -30,62 +43,68 @@ const getNumberOfRequestsInAvailableSeconds = (secureResponseTime: number) => {
 
 
 
-export const registryTelemetryEnablerImpl: TelemetryEnablerImpl = {
-    config: null,
+export class RegistryTelemetryEnabler extends TelemetryEnabler {
+
     startApp(): Promise<void> {
         return _startApp(this.config.telemetryInApp);
-    },
+    }
     checkAppStarted(): Promise<boolean> {
         return _checkAppStarted(this.config.baseURL);
-    },
+    }
     checkTelemetryStatus(): Promise<boolean> {
         return checkTelemetryEndpoint(this.config.baseURL + "/telemetry", 200);
-    },
+    }
     runTests(): Promise<void> {
-        let url = myUrlBuilder(this.config.orderOfMagnitude, this.config.baseURL, this.config.agreementId);
-        const responseTime = this.config.orderOfMagnitude.secureResponseTime;
-        let config = { ...this.config, url, iterations: getNumberOfRequestsInAvailableSeconds(responseTime) , delay: responseTime, testname: "RegistryTELEMETRY" };
-        return runTests(config);
-    },
+        return _runTests(this.config);
+    }
     stopApp(): Promise<void> {
         return _stopDockerContainer();
-    },
-    startTelemetry: function (): unknown {
-        return axios.get(`${this.config.baseURL}/telemetry/start`);
     }
-}
-
-export const registryTelemetryIntervalImpl: TelemetryIntervalsImpl = {
-
-    config: null,
-    startApp(): Promise<void> {
-        return _startApp(this.config.telemetryInApp);
-    },
-    checkAppStarted(): Promise<boolean> {
-        return _checkAppStarted(this.config.baseURL);
-    },
-    checkTelemetryStatus(): Promise<boolean> {
-        return checkTelemetryEndpoint(this.config.baseURL + "/telemetry", 200);
-    },
-    runTests(): Promise<void> {
-        let url = myUrlBuilder(this.config.orderOfMagnitude, this.config.baseURL, this.config.agreementId);
-        const responseTime = this.config.orderOfMagnitude.secureResponseTime;
-        let config = { ...this.config, requests: getNumberOfRequestsInAvailableSeconds(responseTime), url, delay: responseTime, testname: "RegistryINTERVAL" };
-        return runTests(config);
-    },
     startTelemetry(): Promise<void> {
         return axios.get(`${this.config.baseURL}/telemetry/start`);
-    },
+    }
+
+}
+
+export class RegistryTelemetryInterval extends TelemetryIntervals {
+
+    startApp(): Promise<void> {
+        return _startApp(this.config.telemetryInApp);
+    }
+    checkAppStarted(): Promise<boolean> {
+        return _checkAppStarted(this.config.baseURL);
+    }
+    checkTelemetryStatus(): Promise<boolean> {
+        return checkTelemetryEndpoint(this.config.baseURL + "/telemetry", 200);
+    }
+    runTests(): Promise<void> {
+        return _runTests(this.config);
+    }
+    startTelemetry(): Promise<void> {
+        return axios.get(`${this.config.baseURL}/telemetry/start`);
+    }
     stopTelemetry(): Promise<void> {
         return axios.get(`${this.config.baseURL}/telemetry/stop`);
-    },
+    }
     stopApp(): Promise<void> {
         return _stopDockerContainer();
     }
 
 }
 
-
+async function _runTests(config: TestConfig): Promise<void> {
+    for(let i = 0; i < config.minutesPerTest; i++) {
+        logger.log("Starting test for minute " + (i+1) + " of " + config.minutesPerTest);
+        await awaitCollectorReset();
+        startDockerStats(config);
+        let url = myUrlBuilder(config.orderOfMagnitude.value, config.baseURL, config.agreementId);
+        const responseTime = config.orderOfMagnitude.secureResponseTime;
+        let runConfig : HeapAndResponseTimesConfig = { requests: getNumberOfRequestsInAvailableSeconds(responseTime), url, delay: responseTime };
+        await getHeapStatsAndResopnseTimes(config,runConfig);
+        stopDockerStats();
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+}
 
 
 async function _startApp(telemetryInApp: boolean): Promise<void> {

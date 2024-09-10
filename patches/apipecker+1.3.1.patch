@@ -1,9 +1,16 @@
 diff --git a/node_modules/apipecker/src/index.js b/node_modules/apipecker/src/index.js
-index e2c59f9..f8461fa 100755
+index 8147f32..080311d 100644
 --- a/node_modules/apipecker/src/index.js
 +++ b/node_modules/apipecker/src/index.js
-@@ -29,10 +29,9 @@ function log(s){
-<<<<<<< HEAD
+@@ -22,6 +22,7 @@ var logs = [];
+ var consoleLogging = false;
+ 
+ function log(s){
++    s = `${new Date().toISOString()}: ${s}`;
+     logs.push(s);
+     if(consoleLogging)
+         console.log(s);
+@@ -29,14 +30,14 @@ function log(s){
  
  
  function run(config){
@@ -15,27 +22,62 @@ index e2c59f9..f8461fa 100755
      var  url = config.url;
      const verbose = config.verbose;
      const method = config.method;
-@@ -132,6 +131,7 @@ function run(config){
+     consoleLogging = config.consoleLogging;
++    let timeout = config.timeout||120000;
+ 
+     const urlBuilder = config.urlBuilder;
+     const requestBuilder = config.requestBuilder;
+@@ -86,7 +87,8 @@ function run(config){
+                 "min": round(min(stats.map(n=>n.completeResponseTime)),3),
+                 "max": round(max(stats.map(n=>n.completeResponseTime)),3),
+                 "mean": round(mean(stats.map(n=>n.completeResponseTime)),3),
+-                "std": round(std(stats.map(n=>n.completeResponseTime)),3)
++                "std": round(std(stats.map(n=>n.completeResponseTime)),3),
++                "startTimeISO": stats[0]?.startTimeISO,
+             }
+         };
+     }
+@@ -113,7 +115,8 @@ function run(config){
+                 "min": round(min(responseTimes),3),
+                 "max": round(max(responseTimes),3),
+                 "mean": round(mean(responseTimes),3),
+-                "std": round(std(responseTimes),3)
++                "std": round(std(responseTimes),3),
++                "startTimeISO": lotStats[0]?.result?.stats[0]?.startTimeISO,
+             }
+         };
+         return fullStats;
+@@ -132,6 +135,7 @@ function run(config){
              var options = {};
  
              options.method = method;
-+            options.timeout = 120000;
++            options.timeout = timeout;
   
              var begin = getBegin();
  
-@@ -157,6 +157,11 @@ function run(config){
+@@ -148,7 +152,7 @@ function run(config){
+                 options.method = "GET";
+ 
+             if (verbose) log(`  - ${id}: ${options.method} Request to <${url}>...`);
+-
++            const startTime = new Date();
+             const req = requester.request(url,options, (resp) => {
+     
+                 if (verbose) log(`    -> ${id}: Status Code ${resp.statusCode}`);
+@@ -156,6 +160,12 @@ function run(config){
+                 let data = '';
                  stats["statusCode"] = resp.statusCode;
                  stats["initialResponseTime"] = getDuration(begin);
-                 
++                stats["startTimeISO"] = startTime.toISOString();
++    
 +                req.on("timeout", () => {
 +                    req.abort(); // Aborta la solicitud si excede el tiempo límite
 +                    reject(`${id}: Request timed out`);
 +                });
-+
+     
                  // A chunk of data has been recieved.
                  resp.on('data', (chunk) => {
-                     data += chunk;
-@@ -229,8 +234,7 @@ function run(config){
+@@ -229,8 +239,7 @@ function run(config){
                  var results = {};              
                  if(iterationResults.length > 0){
                      results = computeFullStats(iterationResults);
@@ -45,9 +87,9 @@ index e2c59f9..f8461fa 100755
                      results.summary = {};
                      log("\nNo results to be shown.");
                  }
-@@ -242,11 +246,20 @@ function run(config){
+@@ -242,11 +251,20 @@ function run(config){
                      resultsHandler(results);    
-     
+ 
              }
 +        }).finally(() => {
 +            if (remainingIterations <= 0) {
@@ -67,68 +109,3 @@ index e2c59f9..f8461fa 100755
      }
          
      function harvester(iterationResult) {
-=======
- 
- 
- function run(config){
--
-     const concurrentUsers = config.concurrentUsers;
-     const iterations = config.iterations;
--    const delay = config.delay;
-+    let delay = config.delay;
-     var  url = config.url;
-     const verbose = config.verbose;
-     const method = config.method;
-@@ -132,6 +131,7 @@ function run(config){
-             var options = {};
- 
-             options.method = method;
-+            options.timeout = 120000;
-  
-             var begin = getBegin();
- 
-@@ -157,6 +157,11 @@ function run(config){
-                 stats["statusCode"] = resp.statusCode;
-                 stats["initialResponseTime"] = getDuration(begin);
-                 
-+                req.on("timeout", () => {
-+                    req.abort(); // Aborta la solicitud si excede el tiempo límite
-+                    reject(`${id}: Request timed out`);
-+                });
-+
-                 // A chunk of data has been recieved.
-                 resp.on('data', (chunk) => {
-                     data += chunk;
-@@ -229,8 +234,7 @@ function run(config){
-                 var results = {};              
-                 if(iterationResults.length > 0){
-                     results = computeFullStats(iterationResults);
--                    
--                }else{
-+                } else {
-                     results.summary = {};
-                     log("\nNo results to be shown.");
-                 }
-@@ -242,11 +246,20 @@ function run(config){
-                     resultsHandler(results);    
-     
-             }
-+        }).finally(() => {
-+            if (remainingIterations <= 0) {
-+                // End of iterations
-+                log("All iterations completed or terminated.");
-+            }
-         });
-     }
-     
-+    let acumulatedDelay = 0;
-     for (var i = 1; i <= iterations; i++) {
--        setTimeout(requestLot, (delay * (i - 1)), "iteration" + i, harvester);
-+        var finalDelay = delay;
-+        if (typeof delay === 'function') finalDelay = delay(i);
-+        setTimeout(requestLot, acumulatedDelay, "iteration-" + i, harvester);
-+        acumulatedDelay += finalDelay;
-     }
-         
-     function harvester(iterationResult) {
->>>>>>> d6bd99fb47d10952a6280b3e65b371d12718835b
